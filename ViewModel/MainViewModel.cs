@@ -2,18 +2,13 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 
 namespace DesktopOrganizerWPF.ViewModel
 {
     public partial class MainWindowViewModel : ObservableObject
     {
-        private string previousAudioFolderName = "Audio";
-        private string previousProgramsFolderName = "Programs";
-        private string previousImagesFolderName = "Images";
-        private string previouDocumentsFolderName = "Documents";
-        private string previouCompressedFolderName = "Compressed";
-
         [ObservableProperty]
         private string targetFolder;
 
@@ -21,83 +16,67 @@ namespace DesktopOrganizerWPF.ViewModel
         private bool autoOrganize;
 
         [ObservableProperty]
-        private bool organizeAudio;
+        private List<FolderOrganizer> foldersToOrganize = new List<FolderOrganizer>();
 
         [ObservableProperty]
-        private string audioFolderName;
+        private FolderOrganizer audioOrganizer, programOrganizer, imageOrganizer
+            ,documentOrganizer, compressedOrganizer;
 
-        [ObservableProperty]
-        private bool organizePrograms;
-
-        [ObservableProperty]
-        private string programsFolderName;
-
-        [ObservableProperty]
-        private bool organizeImages;
-
-        [ObservableProperty]
-        private string imagesFolderName;
-
-        [ObservableProperty]
-        private bool organizeDocuments;
-
-        [ObservableProperty]
-        private string documentsFolderName;
-
-        [ObservableProperty]
-        private bool organizeCompressed;
-
-        [ObservableProperty]
-        private string compressedFolderName;
+        private string targetFolderJsonFilePath = "targetfolder.json"; 
+        private string settingsJsonFilePath = "organizersettings.json"; 
 
         public MainWindowViewModel()
         {
-            AudioFolderName = "Audio";
-            ProgramsFolderName = "Programs";
-            ImagesFolderName = "Images";
-            DocumentsFolderName = "Documents";
-            compressedFolderName = "Compressed";
-        }
-        partial void OnAudioFolderNameChanged(string value)
-        {
-            if (Directory.Exists(TargetFolder))
+            if (File.Exists(settingsJsonFilePath))
             {
-                RenameFolder(previousAudioFolderName, value);
-                previousAudioFolderName = value;
+                string settingsString = File.ReadAllText(settingsJsonFilePath);
+                FoldersToOrganize = JsonSerializer.Deserialize<List<FolderOrganizer>>(settingsString);
+
+                audioOrganizer = FoldersToOrganize.Find(fo => fo.Type == FolderOrganizer.OrganizerType.audio);
+                programOrganizer = FoldersToOrganize.Find(fo => fo.Type == FolderOrganizer.OrganizerType.program);
+                imageOrganizer = FoldersToOrganize.Find(fo => fo.Type == FolderOrganizer.OrganizerType.image);
+                documentOrganizer = FoldersToOrganize.Find(fo => fo.Type == FolderOrganizer.OrganizerType.document);
+                compressedOrganizer = FoldersToOrganize.Find(fo => fo.Type == FolderOrganizer.OrganizerType.compressed);
             }
-        }
-        partial void OnProgramsFolderNameChanged(string value)
-        {
-            if (Directory.Exists(TargetFolder))
+            else
             {
-                RenameFolder(previousProgramsFolderName, value);
-                previousProgramsFolderName = value;
+                audioOrganizer = new FolderOrganizer(FolderOrganizer.OrganizerType.audio);
+                programOrganizer = new FolderOrganizer(FolderOrganizer.OrganizerType.program);
+                imageOrganizer = new FolderOrganizer(FolderOrganizer.OrganizerType.image);
+                documentOrganizer = new FolderOrganizer(FolderOrganizer.OrganizerType.document);
+                compressedOrganizer = new FolderOrganizer(FolderOrganizer.OrganizerType.compressed);
+
+                FoldersToOrganize.Add(audioOrganizer);
+                FoldersToOrganize.Add(programOrganizer);
+                FoldersToOrganize.Add(imageOrganizer);
+                FoldersToOrganize.Add(documentOrganizer);
+                FoldersToOrganize.Add(compressedOrganizer);
             }
-        }
-        partial void OnImagesFolderNameChanged(string value)
-        {
-            if (Directory.Exists(TargetFolder))
+
+            if (File.Exists(targetFolderJsonFilePath)) 
             {
-                RenameFolder(previousImagesFolderName, value);
-                previousImagesFolderName = value;
+                string targetString = File.ReadAllText(targetFolderJsonFilePath);
+                TargetFolder = JsonSerializer.Deserialize<string>(targetString);
             }
-        }
-        partial void OnDocumentsFolderNameChanged(string value)
-        {
-            if (Directory.Exists(TargetFolder))
+            else
             {
-                RenameFolder(previouDocumentsFolderName, value);
-                previouDocumentsFolderName = value;
+                TargetFolder = "Welcome! Please Select A Target Folder";
             }
+
+            Application.Current.MainWindow.Closed += MainWindow_Closed;
         }
-        partial void OnCompressedFolderNameChanged(string value)
+
+        private void MainWindow_Closed(object? sender, EventArgs e)
         {
-            if (Directory.Exists(TargetFolder))
-            {
-                RenameFolder(previouCompressedFolderName, value);
-                previouCompressedFolderName = value;
-            }
+            JsonSerializerOptions options = new JsonSerializerOptions();
+            options.WriteIndented = true;
+            string targetFolder = JsonSerializer.Serialize(TargetFolder,options);
+            string settings = JsonSerializer.Serialize(FoldersToOrganize, options);
+
+            File.WriteAllText(targetFolderJsonFilePath, targetFolder);
+            File.WriteAllText(settingsJsonFilePath, settings);
         }
+
         private void RenameFolder(string oldFolderName, string newFolderName)
         {
             string oldPath = Path.Combine(TargetFolder, oldFolderName);
@@ -126,26 +105,12 @@ namespace DesktopOrganizerWPF.ViewModel
                 MessageBox.Show("Please select a valid target folder.");
                 return;
             }
-
-            if (OrganizeAudio)
+            foreach (var folder in FoldersToOrganize)
             {
-                OrganizeFilesByExtension(new[] { ".mp3", ".wav" ,".m4a" }, AudioFolderName);
-            }
-            if (OrganizePrograms)
-            {
-                OrganizeFilesByExtension(new[] { ".exe", ".lnk"}, ProgramsFolderName);
-            }
-            if (OrganizeImages)
-            {
-                OrganizeFilesByExtension(new[] { ".png", ".jpg" }, ImagesFolderName);
-            }
-            if (OrganizeDocuments)
-            {
-                OrganizeFilesByExtension(new[] { ".pdf", ".docx", ".xml", ".xlsx" }, DocumentsFolderName);
-            }
-            if (OrganizeCompressed)
-            {
-                OrganizeFilesByExtension(new[] { ".rar", ".zip"}, CompressedFolderName);
+                if(folder.Organize)
+                {
+                    OrganizeFilesByExtension(folder.Extensions.ToArray(), folder.FolderName);
+                }
             }
 
             MessageBox.Show("Files organized successfully!");
@@ -187,8 +152,6 @@ namespace DesktopOrganizerWPF.ViewModel
 
             return null;
         }
-
-
     }
 }
 

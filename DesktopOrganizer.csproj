@@ -6,11 +6,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <PackageIcon>file.ico</PackageIcon>
+    <ApplicationIcon>Resources\file.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Resources\file.png" />
+    <None Remove="Resources\file.ico" />
     <None Remove="Resources\Settings.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\file.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,8 +24,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Resources\file.png" />
     <Resource Include="Resources\Settings.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Resources\file.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
