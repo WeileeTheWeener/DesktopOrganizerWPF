@@ -35,6 +35,7 @@ namespace DesktopOrganizerWPF
             viewModelInstance.UiElementNames.AutoOrganizeString = DesktopOrganizer.Properties.Resources.AutoOrganize;
             viewModelInstance.UiElementNames.FolderNameString = DesktopOrganizer.Properties.Resources.FolderName;
             viewModelInstance.UiElementNames.ChangeLangString = DesktopOrganizer.Properties.Resources.ChangeLanguage;
+            viewModelInstance.UiElementNames.TargetFolderString = DesktopOrganizer.Properties.Resources.TargetFolder;
 
 
             viewModelInstance.UiElementNames.OrganizeAudio = DesktopOrganizer.Properties.Resources.OrganizeAudio;
