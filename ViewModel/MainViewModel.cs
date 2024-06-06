@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DesktopOrganizer.Model;
 using Microsoft.Win32;
 using System.IO;
 using System.Security.Permissions;
@@ -32,7 +33,12 @@ namespace DesktopOrganizerWPF.ViewModel
 
         FileSystemWatcher fileSystemWatcher;
 
-        public MainWindowViewModel()
+        [ObservableProperty]
+        UIElementNames uiElementNames = new UIElementNames();
+
+        private bool fileWatcherEventExists = false;
+
+        public MainWindowViewModel(string init)
         {
             fileSystemWatcher = new FileSystemWatcher();
 
@@ -41,6 +47,7 @@ namespace DesktopOrganizerWPF.ViewModel
                 string[] allStringLines = File.ReadAllLines(settingsJsonFileName);
                 string[] settingsStringLines = allStringLines.Skip(2).ToArray();
                 string settingsString = string.Join(Environment.NewLine, settingsStringLines);
+
                 FoldersToOrganize = JsonSerializer.Deserialize<List<FolderOrganizer>>(settingsString);
                 AutoOrganize = JsonSerializer.Deserialize<bool>(allStringLines[1]);
 
@@ -63,8 +70,8 @@ namespace DesktopOrganizerWPF.ViewModel
                 FoldersToOrganize.Add(imageOrganizer);
                 FoldersToOrganize.Add(documentOrganizer);
                 FoldersToOrganize.Add(compressedOrganizer);
-            }       
-            if (File.Exists(settingsJsonFileName)) 
+            }
+            if (File.Exists(settingsJsonFileName))
             {
                 string[] targetString = File.ReadAllLines(settingsJsonFileName);
 
@@ -85,23 +92,36 @@ namespace DesktopOrganizerWPF.ViewModel
 
             Application.Current.MainWindow.Closed += MainWindow_Closed;
 
-            fileSystemWatcher.EnableRaisingEvents = true;
-            fileSystemWatcher.IncludeSubdirectories = false;
-            fileSystemWatcher.Created += FileSystemWatcher_Created;
-            fileSystemWatcher.NotifyFilter = NotifyFilters.Attributes |
-                                                NotifyFilters.CreationTime |
-                                                NotifyFilters.FileName |
-                                                NotifyFilters.LastAccess |
-                                                NotifyFilters.LastWrite |
-                                                NotifyFilters.Size |
-                                                NotifyFilters.Security;
+            
+        }
+        public MainWindowViewModel()
+        {
 
+        }
+        partial void OnTargetFolderChanged(string value)
+        {
+            if (!Directory.Exists(TargetFolder)) return;
+
+            fileSystemWatcher.Path = TargetFolder;
+
+            if(!fileWatcherEventExists)
+            {
+                fileSystemWatcher.EnableRaisingEvents = true;
+                fileSystemWatcher.IncludeSubdirectories = false;
+                fileSystemWatcher.Created += FileSystemWatcher_Created;
+                fileSystemWatcher.NotifyFilter = NotifyFilters.Attributes |
+                                                    NotifyFilters.CreationTime |
+                                                    NotifyFilters.FileName |
+                                                    NotifyFilters.LastAccess |
+                                                    NotifyFilters.LastWrite |
+                                                    NotifyFilters.Size |
+                                                    NotifyFilters.Security;
+
+                fileWatcherEventExists = true;
+            }    
         }
         private void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            //MessageBoxOptions options = MessageBoxOptions.DefaultDesktopOnly;
-            //MessageBox.Show($"File created: {e.Name}","title",MessageBoxButton.OK,MessageBoxImage.None,MessageBoxResult.None,options);
-
             if (AutoOrganize)
             {
                 OrganizeFiles();
