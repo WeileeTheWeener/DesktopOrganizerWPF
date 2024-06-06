@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using System.IO;
+using System.Security.Permissions;
 using System.Text.Json;
 using System.Windows;
 
@@ -22,15 +23,26 @@ namespace DesktopOrganizerWPF.ViewModel
         private FolderOrganizer audioOrganizer, programOrganizer, imageOrganizer
             ,documentOrganizer, compressedOrganizer;
 
-        private string targetFolderJsonFilePath = "targetfolder.json"; 
-        private string settingsJsonFilePath = "organizersettings.json"; 
+        [ObservableProperty]
+        public string extensionCheckBoxText = "Extensions";
+
+        private string settingsJsonFileName = "organizer_settings.json";
+
+        private string welcomeString = "Welcome! Please Select A Target Folder";
+
+        FileSystemWatcher fileSystemWatcher;
 
         public MainWindowViewModel()
         {
-            if (File.Exists(settingsJsonFilePath))
+            fileSystemWatcher = new FileSystemWatcher();
+
+            if (File.Exists(settingsJsonFileName))
             {
-                string settingsString = File.ReadAllText(settingsJsonFilePath);
+                string[] allStringLines = File.ReadAllLines(settingsJsonFileName);
+                string[] settingsStringLines = allStringLines.Skip(2).ToArray();
+                string settingsString = string.Join(Environment.NewLine, settingsStringLines);
                 FoldersToOrganize = JsonSerializer.Deserialize<List<FolderOrganizer>>(settingsString);
+                AutoOrganize = JsonSerializer.Deserialize<bool>(allStringLines[1]);
 
                 audioOrganizer = FoldersToOrganize.Find(fo => fo.Type == FolderOrganizer.OrganizerType.audio);
                 programOrganizer = FoldersToOrganize.Find(fo => fo.Type == FolderOrganizer.OrganizerType.program);
@@ -51,32 +63,63 @@ namespace DesktopOrganizerWPF.ViewModel
                 FoldersToOrganize.Add(imageOrganizer);
                 FoldersToOrganize.Add(documentOrganizer);
                 FoldersToOrganize.Add(compressedOrganizer);
-            }
-
-            if (File.Exists(targetFolderJsonFilePath)) 
+            }       
+            if (File.Exists(settingsJsonFileName)) 
             {
-                string targetString = File.ReadAllText(targetFolderJsonFilePath);
-                TargetFolder = JsonSerializer.Deserialize<string>(targetString);
+                string[] targetString = File.ReadAllLines(settingsJsonFileName);
+
+                if (targetString[0] != "null" && targetString[0].Trim('"') != welcomeString.Trim('"'))
+                {
+                    TargetFolder = JsonSerializer.Deserialize<string>(targetString[0]);
+                    fileSystemWatcher.Path = TargetFolder;
+                }
+                else
+                {
+                    TargetFolder = welcomeString;
+                }
             }
             else
             {
-                TargetFolder = "Welcome! Please Select A Target Folder";
+                TargetFolder = welcomeString;
             }
 
             Application.Current.MainWindow.Closed += MainWindow_Closed;
-        }
 
+            fileSystemWatcher.EnableRaisingEvents = true;
+            fileSystemWatcher.IncludeSubdirectories = false;
+            fileSystemWatcher.Created += FileSystemWatcher_Created;
+            fileSystemWatcher.NotifyFilter = NotifyFilters.Attributes |
+                                                NotifyFilters.CreationTime |
+                                                NotifyFilters.FileName |
+                                                NotifyFilters.LastAccess |
+                                                NotifyFilters.LastWrite |
+                                                NotifyFilters.Size |
+                                                NotifyFilters.Security;
+
+        }
+        private void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
+        {
+            //MessageBoxOptions options = MessageBoxOptions.DefaultDesktopOnly;
+            //MessageBox.Show($"File created: {e.Name}","title",MessageBoxButton.OK,MessageBoxImage.None,MessageBoxResult.None,options);
+
+            if (AutoOrganize)
+            {
+                OrganizeFiles();
+            }
+        }
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
             JsonSerializerOptions options = new JsonSerializerOptions();
             options.WriteIndented = true;
+
             string targetFolder = JsonSerializer.Serialize(TargetFolder,options);
+            string autoOrganize = JsonSerializer.Serialize(AutoOrganize, options);
             string settings = JsonSerializer.Serialize(FoldersToOrganize, options);
 
-            File.WriteAllText(targetFolderJsonFilePath, targetFolder);
-            File.WriteAllText(settingsJsonFilePath, settings);
-        }
+            string jsonString = targetFolder + "\n" + autoOrganize + "\n" + settings;
 
+            File.WriteAllText(settingsJsonFileName, jsonString);
+        }
         private void RenameFolder(string oldFolderName, string newFolderName)
         {
             string oldPath = Path.Combine(TargetFolder, oldFolderName);
@@ -91,6 +134,7 @@ namespace DesktopOrganizerWPF.ViewModel
         public void ChooseFolder()
         {
             var folderName = OpenFolderDialog("Select Target Folder");
+
             if (!string.IsNullOrEmpty(folderName))
             {
                 TargetFolder = folderName;
@@ -105,15 +149,24 @@ namespace DesktopOrganizerWPF.ViewModel
                 MessageBox.Show("Please select a valid target folder.");
                 return;
             }
-            foreach (var folder in FoldersToOrganize)
+            if(FoldersToOrganize.Where(ext => ext.Organize).Any())
             {
-                if(folder.Organize)
+                foreach (var folder in FoldersToOrganize)
                 {
-                    OrganizeFilesByExtension(folder.Extensions.ToArray(), folder.FolderName);
+                    if (folder.Organize)
+                    {
+                        //OrganizeFilesByExtension(folder.Extensions.ToArray(), folder.FolderName);
+                        OrganizeFilesByExtension(folder.Extensions.Where(ext => ext.IsSelected)
+                            .Select(ext => ext.ExtensionName).ToArray(), folder.FolderName);
+                    }
                 }
-            }
 
-            MessageBox.Show("Files organized successfully!");
+                MessageBox.Show("Files organized successfully!");
+            }
+            else
+            {
+                MessageBox.Show("Please select atleast one category for organization.");
+            }
         }
         private void OrganizeFilesByExtension(string[] extensions, string folderName)
         {
@@ -131,7 +184,11 @@ namespace DesktopOrganizerWPF.ViewModel
                 if (extensions.Contains(Path.GetExtension(file)))
                 {
                     string destinationPath = Path.Combine(targetPath, Path.GetFileName(file));
-                    File.Move(file, destinationPath);
+
+                    if(!File.Exists(destinationPath))
+                    {
+                        File.Move(file, destinationPath);
+                    }
                 }
             }
         }

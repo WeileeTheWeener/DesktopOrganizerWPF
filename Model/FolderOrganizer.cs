@@ -13,7 +13,7 @@ namespace DesktopOrganizerWPF
         public string folderName;
 
         [ObservableProperty]
-        public List<string> extensions = new List<string>();
+        public List<Extension> extensions = new List<Extension>();
 
         [ObservableProperty]
         public OrganizerType type;
@@ -30,86 +30,89 @@ namespace DesktopOrganizerWPF
 
         public FolderOrganizer(OrganizerType type)
         {
-            FileExtensions fileExtensions = new FileExtensions();
+            FileExtensions fileExtensionNames = new FileExtensions();
             this.type = type;
 
             switch (type)
             {
                 case OrganizerType.audio:
-                    extensions.Add(fileExtensions.mp3);
-                    extensions.Add(fileExtensions.wav);
-                    extensions.Add(fileExtensions.m4a);
+                    extensions.Add(fileExtensionNames.mp3);
+                    extensions.Add(fileExtensionNames.wav);
+                    extensions.Add(fileExtensionNames.m4a);
                     break;
                 case OrganizerType.program:
-                    extensions.Add(fileExtensions.lnk);
-                    extensions.Add(fileExtensions.exe);
+                    extensions.Add(fileExtensionNames.lnk);
+                    extensions.Add(fileExtensionNames.exe);
                     break;
                 case OrganizerType.image:
-                    extensions.Add(fileExtensions.png);
-                    extensions.Add(fileExtensions.jpg);
+                    extensions.Add(fileExtensionNames.png);
+                    extensions.Add(fileExtensionNames.jpg);
                     break;
                 case OrganizerType.document:
-                    extensions.Add(fileExtensions.pdf);
-                    extensions.Add(fileExtensions.docx);
-                    extensions.Add(fileExtensions.xml);
-                    extensions.Add(fileExtensions.xlsx);
+                    extensions.Add(fileExtensionNames.pdf);
+                    extensions.Add(fileExtensionNames.docx);
+                    extensions.Add(fileExtensionNames.xml);
+                    extensions.Add(fileExtensionNames.xlsx);
+                    extensions.Add(fileExtensionNames.xlsm);
                     break;
                 case OrganizerType.compressed:
-                    extensions.Add(fileExtensions.rar);
-                    extensions.Add(fileExtensions.zip);
-                    extensions.Add(fileExtensions.sevenzip);
+                    extensions.Add(fileExtensionNames.rar);
+                    extensions.Add(fileExtensionNames.zip);
+                    extensions.Add(fileExtensionNames.sevenzip);
                     break;
             }
 
         }
+
         [JsonConstructor]
-        public FolderOrganizer(bool Organize, string FolderName, List<string> Extensions,OrganizerType Type)
+        public FolderOrganizer(bool Organize, string FolderName, List<Extension> Extensions,OrganizerType Type)
         {
             this.Organize = Organize;
             this.FolderName = FolderName;
-            this.Extensions = Extensions ?? new List<string>();
+            this.Extensions = Extensions ?? new List<Extension>();
             type = Type;
         }
-        public void AddExtension(string ex)
-        {
-            if(!Extensions.Contains(ex))
-            {
-                Extensions.Add(ex);
-            }
-        }
-        public void RemoveExtension(string ex)
-        {
-            if (Extensions.Contains(ex))
-            {
-                Extensions.Remove(ex);
-            }
-        }
     }
-    public class Extensions
+    public partial class Extension : ObservableObject
     {
-        public List<string> availableExtensions { get; set; }
-        public bool IsSelected { get; set; }
+        [ObservableProperty]
+        public string extensionName;
+
+        [ObservableProperty]
+        public bool isSelected;
+
+        public Extension(string name)
+        {
+            extensionName = name;
+        }
+        [JsonConstructor]
+        public Extension(string ExtensionName,bool IsSelected)
+        {
+            this.ExtensionName = ExtensionName;
+            this.IsSelected = IsSelected;
+        }
     }
     public class FileExtensions
     {
-        public string mp3 = ".mp3";
-        public string wav = ".wav";
-        public string m4a = ".m4a";
-
-        public string exe = ".exe";
-        public string lnk = ".lnk";
-
-        public string png = ".png";
-        public string jpg = ".jpg";
-
-        public string pdf = ".pdf";
-        public string docx = ".docx";
-        public string xml = ".xml";
-        public string xlsx = ".xlsx";
+        public Extension mp3 = new Extension(".mp3");       
+        public Extension wav = new Extension(".wav");       
+        public Extension m4a = new Extension(".m4a");    
         
-        public string rar = ".rar";
-        public string zip = ".zip";
-        public string sevenzip = ".7z";
+        public Extension exe = new Extension(".exe");       
+        public Extension lnk = new Extension(".lnk");  
+        
+        public Extension png = new Extension(".png");       
+        public Extension jpg = new Extension(".jpg"); 
+        
+        public Extension pdf = new Extension(".pdf");       
+        public Extension docx = new Extension(".docx");       
+        public Extension xml = new Extension(".xml");       
+        public Extension xlsx = new Extension(".xlsx");       
+        public Extension xlsm = new Extension(".xlsm"); 
+        
+        public Extension rar = new Extension(".rar");       
+        public Extension zip = new Extension(".zip");       
+        public Extension sevenzip = new Extension(".7z");       
     }
 
 }
