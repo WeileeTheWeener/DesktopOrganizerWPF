@@ -47,6 +47,7 @@ namespace DesktopOrganizerWPF
                 case OrganizerType.image:
                     extensions.Add(fileExtensionNames.png);
                     extensions.Add(fileExtensionNames.jpg);
+                    extensions.Add(fileExtensionNames.jpeg);
                     break;
                 case OrganizerType.document:
                     extensions.Add(fileExtensionNames.pdf);
@@ -103,6 +104,7 @@ namespace DesktopOrganizerWPF
         
         public Extension png = new Extension(".png");       
         public Extension jpg = new Extension(".jpg"); 
+        public Extension jpeg = new Extension(".jpeg"); 
         
         public Extension pdf = new Extension(".pdf");       
         public Extension docx = new Extension(".docx");       

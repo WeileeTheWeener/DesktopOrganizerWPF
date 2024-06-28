@@ -1,4 +1,5 @@
 ﻿using DesktopOrganizerWPF.ViewModel;
+using Microsoft.Win32;
 using System.Windows;
 
 namespace DesktopOrganizerWPF
@@ -14,6 +15,9 @@ namespace DesktopOrganizerWPF
 
             Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("tr-TR");
             UpdateUI();
+
+            AddContextMenuEntries();
+            this.Closing += MainWindow_Closing;
         }
 
         private void Turkish_Click(object sender, RoutedEventArgs e)
@@ -44,6 +48,49 @@ namespace DesktopOrganizerWPF
             viewModelInstance.UiElementNames.OrganizeDocument = DesktopOrganizer.Properties.Resources.OrganizeDocuments;
             viewModelInstance.UiElementNames.OrganizeCompressed = DesktopOrganizer.Properties.Resources.OrganizeCompressed;
             
+        }
+        private void AddContextMenuEntries()
+        {
+            try
+            {
+                string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                RegistryKey key = Registry.ClassesRoot.CreateSubKey(@"*\shell\AddTag");
+                if (key != null)
+                {
+                    key.SetValue("", "Add Tag");
+                    key.SetValue("Icon", exePath);
+
+                    RegistryKey commandKey = key.CreateSubKey("command");
+                    if (commandKey != null)
+                    {
+                        commandKey.SetValue("", "\"" + exePath + "\" \"%1\"");
+                        commandKey.Close();
+                    }
+
+                    key.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to add context menu entries: " + ex.Message);
+            }
+        }
+
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            RemoveContextMenuEntries();
+        }
+
+        private void RemoveContextMenuEntries()
+        {
+            try
+            {
+                Registry.ClassesRoot.DeleteSubKeyTree(@"*\shell\AddTag", false);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to remove context menu entries: " + ex.Message);
+            }
         }
     }
 }

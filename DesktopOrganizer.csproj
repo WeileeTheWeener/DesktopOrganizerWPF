@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <PackageIcon>file.ico</PackageIcon>
     <ApplicationIcon>Resources\file.ico</ApplicationIcon>
+    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>

@@ -180,8 +180,7 @@ namespace DesktopOrganizerWPF.ViewModel
                             .Select(ext => ext.ExtensionName).ToArray(), folder.FolderName);
                     }
                 }
-
-                MessageBox.Show("Files organized successfully!");
+                //MessageBox.Show("Files organized successfully!");
             }
             else
             {
